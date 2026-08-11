@@ -1,0 +1,60 @@
+name: hermes
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+
+  # Core
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - xgboost
+
+  # Network analysis
+  - networkx
+
+  # Geospatial
+  - gdal
+  - geopandas
+  - proj
+  - pyogrio
+  - pyproj
+  - rasterio
+  - rasterstats
+  - shapely
+
+  # Visualization
+  - matplotlib
+  - plotly
+
+  # I/O
+  - openpyxl
+  - xlrd
+  - pyarrow
+  - lxml
+  - beautifulsoup4
+  - requests
+  - tqdm
+  - pip
+
+  - pip:
+    - py7zr
+
+  # Archives
+  - p7zip
+
+  # Notebook
+  - jupyterlab
+  - ipykernel
+  - ipywidgets
+
+  # Development
+  - black
+  - isort
+  - pytest
+  - python-dotenv
+  - sphinx
