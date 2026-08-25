@@ -221,9 +221,8 @@ HERMES/
 │       ├── simulation/       # simulation engine under development
 │       ├── raster/
 │       ├── terrain/          # terrain analysis under development
-│       ├── agents/
-│       ├── sources/
 │       ├── agents/           # planned decision-support agents
+│       ├── sources/
 │       └── ...
 │
 ├── tests/
