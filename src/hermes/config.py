@@ -35,10 +35,33 @@ OUTPUTS_DIR = PROJECT_DIR / "outputs"
 ASSETS_DIR = PROJECT_DIR / "assets"
 FIGURES_DIR = ASSETS_DIR / "figures"
 
+# ============================================================================
+# Terrain paths
+# ============================================================================
+
+# Raw RGE ALTI tiles
+
 RGE_ALTI_MNT_DIR = (
     RAW_DIR
     / "rge_alti"
     / "case_study_mnt"
+)
+
+# Prepared terrain products
+
+TERRAIN_DIR = (
+    PREPARED_DIR
+    / "terrain"
+)
+
+CASE_STUDY_DEM_PATH = (
+    TERRAIN_DIR
+    / "case_study_dem_10m.tif"
+)
+
+CASE_STUDY_SLOPE_PATH = (
+    TERRAIN_DIR
+    / "case_study_slope_10m.tif"
 )
 
 
@@ -57,6 +80,9 @@ for directory in (
     NOTEBOOKS_DIR,
     DOCS_DIR,
     OUTPUTS_DIR,
+    TERRAIN_DIR,
+    ASSETS_DIR,
+    FIGURES_DIR,
 ):
     directory.mkdir(
         parents=True,
