@@ -30,6 +30,16 @@ Rather than producing a single predictive model, HERMES combines reproducible da
 
 ---
 
+## Current Project Status
+
+HERMES is currently in the **territorial data engineering and feature construction phase**.
+
+The implemented components focus on collecting, preprocessing and integrating the demographic, employment, commuting, geographic, climate and topographic data required by the future simulation engine.
+
+The cycling feasibility models, behavioural adoption models, economic impact calculations and scenario simulation components are under development.
+
+---
+
 ## Quick Start
 
 ### Clone the repository
@@ -86,6 +96,7 @@ flowchart TD
     D --> H[Mobility Flows]
     D --> I[Municipality Boundaries]
     D --> J[Topography]
+    D --> L[Climate]
 
     E --> K[Municipality Dataset]
     F --> K
@@ -151,17 +162,24 @@ Villefranche-sur-Saône serves as the initial experimental territory for develop
 
 ---
 
-## Research Objectives
+## Research Questions
 
-HERMES is driven by the following research objectives:
+HERMES aims to investigate the following questions:
 
-- develop reproducible urban simulation workflows
-- integrate heterogeneous territorial datasets into a unified analytical framework
-- estimate the potential impacts of sustainable mobility policies before implementation
-- improve transparency and reproducibility of mobility simulations
-- provide reusable data engineering tools for future urban studies
+1. **Cycling feasibility**  
+   For a given commuting flow, is cycling or electric cycling technically feasible when accounting for distance, elevation gain, slope, climate and available infrastructure?
 
-Rather than producing a single predictive model, HERMES aims to build a flexible simulation framework capable of supporting multiple modelling approaches and policy scenarios.
+2. **Individual economic impact**  
+   How much could a commuter save by replacing car journeys with a conventional or electric bicycle, considering energy, fuel, maintenance, parking and equipment costs?
+
+3. **Large-scale modal shift**  
+   What would happen if a significant proportion of commuters shifted from private cars to bicycles or electric bicycles?
+
+4. **Territorial impacts**  
+   How would alternative cycling adoption scenarios affect transport energy demand, greenhouse gas emissions, traffic patterns and inequalities between municipalities?
+
+5. **Policy evaluation**  
+   Which combinations of cycling infrastructure, electric bicycle subsidies and mobility policies could produce the largest feasible modal shift?
 
 ---
 
@@ -178,21 +196,34 @@ HERMES/
 │   └── external/
 │
 ├── notebooks/
-│   ├── 00_data_preparation.ipynb
-│   ├── municipality_table.ipynb
-│   └── climate.ipynb
+│   ├── 01_population.ipynb
+│   ├── 01bis_mayotte_population.ipynb
+│   ├── 02_employment.ipynb
+│   ├── 02bis_mayotte_employment.ipynb
+│   ├── 03_workplace_employment.ipynb
+│   ├── 03bis_mayotte_workplace_employment.ipynb
+│   ├── 04_mobility.ipynb
+│   ├── 05_municipality_boundaries.ipynb
+│   ├── 06_topography.ipynb
+│   ├── 07_climate.ipynb
+│   ├── 08_municipality_table.ipynb
+│   ├── 09_territorial_graph.ipynb
+│   ├── 10_graph_exploration.ipynb
+│   ├── 11_network_analysis.ipynb
+│   └── 12_terrain_features.ipynb
 │
 ├── src/
 │   └── hermes/
 │       ├── preprocessing/
 │       ├── integration/
-│       ├── features/
-│       ├── scenarios/
-│       ├── simulation/
+│       ├── features/         # planned feature engineering modules
+│       ├── scenarios/        # planned scenario definitions
+│       ├── simulation/       # simulation engine under development
 │       ├── raster/
-│       ├── terrain/
+│       ├── terrain/          # terrain analysis under development
 │       ├── agents/
 │       ├── sources/
+│       ├── agents/           # planned decision-support agents
 │       └── ...
 │
 ├── tests/
@@ -225,17 +256,25 @@ HERMES/
 ### Scenario Simulation
 
 - [ ] Baseline mobility scenario
-- [ ] Bicycle adoption scenarios
+- [ ] Conventional bicycle adoption scenarios
 - [ ] Electric bicycle adoption scenarios
-- [ ] Sensitivity analysis
+- [ ] Progressive adoption levels
+- [ ] Large-scale modal shift scenarios
+- [ ] Cycling infrastructure expansion scenario
+- [ ] Electric bicycle subsidy scenario
+- [ ] Combined policy scenarios
+- [ ] Sensitivity and uncertainty analysis
 - [ ] Spatial comparison of scenario outcomes
 
 ### Impact Assessment
 
 - [ ] Modal shift
+- [ ] User mobility costs and potential savings
+- [ ] Bicycle and electric bicycle ownership costs
 - [ ] Transport energy demand
 - [ ] Greenhouse gas emissions
-- [ ] Additional environmental and territorial impacts
+- [ ] Traffic and congestion impacts
+- [ ] Distributional and territorial impacts
 
 ### Decision Support
 
