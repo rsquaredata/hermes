@@ -518,6 +518,24 @@ DATASETS: dict[str, Dataset] = {
         storage="prepared",
     ),
 
+    "terrain_slope": Dataset(
+        name="Terrain Slope",
+        source="HERMES / IGN",
+        download_filename="",
+        local_filename="terrain/case_study_slope_10m.tif",
+        description=(
+            "10 m terrain slope raster expressed as percent grade "
+            "and derived from the HERMES digital elevation model"
+        ),
+        file_format="GeoTIFF",
+        spatial_resolution="10 m",
+        temporal_resolution="",
+        license="Open Licence 2.0",
+        dataset_id="RGEALTI_2-0_SLOPE",
+        vintage=2023,
+        storage="prepared",
+),
+
     "roads": Dataset(
         name="Road Network",
         source="OpenStreetMap",
