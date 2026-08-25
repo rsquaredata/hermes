@@ -20,7 +20,6 @@ It includes utilities for:
 from pathlib import Path
 import re
 
-
 # ============================================================================
 # Third-party libraries
 # ============================================================================
@@ -31,6 +30,7 @@ import pandas as pd
 import rasterio
 
 from rasterio.enums import Resampling
+from rasterio.mask import mask
 from rasterio.features import geometry_mask
 from rasterio.merge import merge
 from shapely.geometry import box, mapping
@@ -603,7 +603,8 @@ def prepare_case_study_mnt(
 
 def compute_slope(
     elevation: np.ndarray,
-    resolution: float,
+    resolution_x: float,
+    resolution_y: float | None = None,
 ) -> np.ndarray:
     """
     Compute terrain slope from an elevation raster.
@@ -613,8 +614,12 @@ def compute_slope(
     elevation
         Two-dimensional elevation array.
 
-    resolution
-        Raster cell size in metres.
+    resolution_x
+        Raster cell size along the x-axis, in metres.
+
+    resolution_y
+        Raster cell size along the y-axis, in metres.
+        If omitted, square cells are assumed.
 
     Returns
     -------
@@ -622,10 +627,13 @@ def compute_slope(
         Terrain slope expressed as percent grade.
     """
 
+    if resolution_y is None:
+        resolution_y = resolution_x
+
     gradient_y, gradient_x = np.gradient(
         elevation,
-        resolution,
-        resolution,
+        resolution_y,
+        resolution_x,
     )
 
     return (
@@ -635,6 +643,112 @@ def compute_slope(
         )
         * 100
     )
+
+
+def build_slope_raster(
+    dem_path: str | Path,
+    output_path: str | Path,
+) -> Path:
+    """
+    Build a terrain slope raster from a digital elevation model.
+
+    Slope is computed from the elevation gradient and expressed as
+    percent grade. The output raster preserves the spatial reference,
+    transform and extent of the input DEM.
+
+    Parameters
+    ----------
+    dem_path
+        Path to the input digital elevation model.
+
+    output_path
+        Path where the slope raster will be written.
+
+    Returns
+    -------
+    Path
+        Path to the generated slope raster.
+    """
+
+    dem_path = Path(dem_path)
+    output_path = Path(output_path)
+
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    # ------------------------------------------------------------------
+    # Read DEM
+    # ------------------------------------------------------------------
+
+    with rasterio.open(dem_path) as src:
+
+        elevation = src.read(
+            1,
+            masked=True,
+        ).astype(
+            np.float32
+        )
+
+        resolution_x = abs(src.res[0])
+        resolution_y = abs(src.res[1])
+
+        profile = src.profile.copy()
+
+    # ------------------------------------------------------------------
+    # Compute slope
+    # ------------------------------------------------------------------
+
+    elevation_array = elevation.filled(
+        np.nan
+    )
+
+    slope = compute_slope(
+        elevation_array,
+        resolution_x=resolution_x,
+        resolution_y=resolution_y,
+    ).astype(
+        np.float32
+    )
+
+    # Preserve invalid DEM cells.
+
+    invalid = (
+        np.ma.getmaskarray(elevation)
+        | ~np.isfinite(elevation_array)
+        | ~np.isfinite(slope)
+    )
+
+    nodata = -9999.0
+
+    slope[
+        invalid
+    ] = nodata
+
+    # ------------------------------------------------------------------
+    # Write slope raster
+    # ------------------------------------------------------------------
+
+    profile.update(
+        dtype="float32",
+        count=1,
+        nodata=nodata,
+        compress="deflate",
+    )
+
+    with rasterio.open(
+        output_path,
+        "w",
+        **profile,
+    ) as dst:
+
+        dst.write(
+            slope,
+            1,
+        )
+
+    return output_path
 
 
 def resample_elevation(
@@ -936,6 +1050,171 @@ def compare_slope_resolutions(
     return (
         pd.DataFrame(rows)
         .set_index("resolution_m")
+    )
+
+
+# ============================================================================
+# Municipality terrain features
+# ============================================================================
+
+def compute_municipality_terrain_features(
+    municipalities: gpd.GeoDataFrame,
+    dem_path: str | Path,
+    slope_path: str | Path,
+    municipality_column: str = "municipality",
+) -> pd.DataFrame:
+    """
+    Compute terrain features for each municipality.
+
+    Elevation and slope statistics are extracted from the HERMES terrain
+    rasters within each municipality geometry.
+
+    Parameters
+    ----------
+    municipalities
+        Municipality geometries in the same projected CRS as the rasters.
+
+    dem_path
+        Path to the digital elevation model.
+
+    slope_path
+        Path to the terrain slope raster.
+
+    municipality_column
+        Column containing municipality names.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Municipality-level terrain features.
+    """
+
+    dem_path = Path(dem_path)
+    slope_path = Path(slope_path)
+
+    rows = []
+
+    # ------------------------------------------------------------------------
+    # Open terrain rasters
+    # ------------------------------------------------------------------------
+
+    with (
+        rasterio.open(dem_path) as dem_src,
+        rasterio.open(slope_path) as slope_src,
+    ):
+
+        # --------------------------------------------------------------------
+        # Validate spatial reference
+        # --------------------------------------------------------------------
+
+        if municipalities.crs != dem_src.crs:
+            raise ValueError(
+                "Municipality geometries and DEM must use the same CRS."
+            )
+
+        if slope_src.crs != dem_src.crs:
+            raise ValueError(
+                "DEM and slope raster must use the same CRS."
+            )
+
+        # --------------------------------------------------------------------
+        # Process municipalities
+        # --------------------------------------------------------------------
+
+        for _, municipality in municipalities.iterrows():
+
+            geometry = municipality.geometry
+
+            # ---------------------------------------------------------------
+            # Extract elevation
+            # ---------------------------------------------------------------
+
+            dem_data, _ = mask(
+                dem_src,
+                [mapping(geometry)],
+                crop=True,
+                filled=False,
+            )
+
+            elevation = dem_data[
+                0
+            ].compressed()
+
+            # ---------------------------------------------------------------
+            # Extract slope
+            # ---------------------------------------------------------------
+
+            slope_data, _ = mask(
+                slope_src,
+                [mapping(geometry)],
+                crop=True,
+                filled=False,
+            )
+
+            slope = slope_data[
+                0
+            ].compressed()
+
+            # ---------------------------------------------------------------
+            # Skip municipalities without terrain data
+            # ---------------------------------------------------------------
+
+            if (
+                elevation.size == 0
+                or slope.size == 0
+            ):
+                continue
+
+            # ---------------------------------------------------------------
+            # Compute terrain features
+            # ---------------------------------------------------------------
+
+            rows.append(
+                {
+                    "municipality": municipality[
+                        municipality_column
+                    ],
+                    "elevation_mean_m": np.mean(
+                        elevation
+                    ),
+                    "elevation_min_m": np.min(
+                        elevation
+                    ),
+                    "elevation_max_m": np.max(
+                        elevation
+                    ),
+                    "elevation_range_m": (
+                        np.max(elevation)
+                        - np.min(elevation)
+                    ),
+                    "slope_mean_pct": np.mean(
+                        slope
+                    ),
+                    "slope_median_pct": np.median(
+                        slope
+                    ),
+                    "slope_p90_pct": np.percentile(
+                        slope,
+                        90,
+                    ),
+                    "slope_p95_pct": np.percentile(
+                        slope,
+                        95,
+                    ),
+                    "share_slope_gt_5_pct": np.mean(
+                        slope > 5
+                    ),
+                    "share_slope_gt_8_pct": np.mean(
+                        slope > 8
+                    ),
+                    "share_slope_gt_10_pct": np.mean(
+                        slope > 10
+                    ),
+                }
+            )
+
+    return pd.DataFrame(
+        rows
     )
 
 
